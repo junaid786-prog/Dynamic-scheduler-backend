@@ -13,7 +13,7 @@ class EventController {
     static createEvent = CatchAsync(async (req, res) => {
         // title, description, category, poster, duration, eventDate, tags
         console.log(req.body)
-        let { title, description, category, duration, eventDate, tags } = req.body
+        let { title, description, category, duration, eventDate, tags, attendeesLimit } = req.body
         if (!req.file) throw new APIError(402, "poster image is required")
 
         // if (!UserToStore.getUserFromSession(req)) {
@@ -51,7 +51,7 @@ class EventController {
                 let myEvent = null
                 console.log(result.secure_url);
                 if (validEvent) {
-                    myEvent = await EventModel.createEvent(title, description, category, result.secure_url, duration, eventDate, tags, manager)
+                    myEvent = await EventModel.createEvent(title, description, category, result.secure_url, duration, eventDate, tags, manager, attendeesLimit)
                 } else {
                     throw new APIError(402, "Validation error")
                 }
@@ -197,7 +197,6 @@ class EventController {
 
     static saveEvent = CatchAsync(async (req, res) => {
         let { eventId } = req.body
-
         // if (!UserToStore.getUserFromSession(req)) {
         //     throw new APIError(401, "login first to access this")
         // }
@@ -211,6 +210,23 @@ class EventController {
         res.status(200).json({
             success: true,
             message: "You have added the event to wishList"
+        })
+    })
+
+    static getRegisteredUsers = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+        let event = await EventModel.getEvent(eventId)
+        if (!event) throw new APIError(404, "event not found")
+        let registeredUsers = event.registeredUsers
+        let docs = []
+        for (let i = 0; i < registeredUsers.length; i++) {
+            let user = await UserModel.findById(registeredUsers[i])
+            docs.push(user)
+        }
+        res.status(200).json({
+            success: true,
+            usersLength: docs.length,
+            users: docs
         })
     })
 

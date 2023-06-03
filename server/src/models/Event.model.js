@@ -46,7 +46,11 @@ const Event = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "user"
         }
-    ]
+    ],
+    attendeesLimit: {
+        type: Number,
+        default: 100
+    }
 })
 
 Event.statics.validateEvent = function (title, description, category, poster, duration, eventDate) {
@@ -59,7 +63,7 @@ Event.statics.validateEvent = function (title, description, category, poster, du
     else return true
 }
 
-Event.statics.createEvent = async function (title, description, category, poster, duration, eventDate, tags, managerId) {
+Event.statics.createEvent = async function (title, description, category, poster, duration, eventDate, tags, managerId, attendeesLimit) {
     try {
         await this.create({
             title,
@@ -69,7 +73,8 @@ Event.statics.createEvent = async function (title, description, category, poster
             duration,
             eventDate,
             tags,
-            managerId
+            managerId,
+            attendeesLimit
         })
     } catch (err) {
         throw new APIError(402, err)
@@ -105,15 +110,20 @@ Event.methods.updateEvent = async function (title, description, category) {
 }
 
 Event.methods.joinEvent = async function (userId) {
+    console.log(userId)
     if (!userId) {
         throw new APIError(402, "userId can not be empty")
     }
-    try {
-        this.registeredUsers.push(userId)
-        await this.save()
-    } catch (err) {
-        throw new APIError(402, "event can't be updated")
+    console.log(this.registeredUsers)
+    for (let i = 0; i < this.registeredUsers.length; i++) {
+        let userObjId = new mongoose.Types.ObjectId(userId)
+        let targetId = new mongoose.Types.ObjectId(this.registeredUsers[i])
+        if (targetId._id.toString() === userObjId._id.toString()) throw new APIError(402, "you have already joined this event")
     }
+    console.log(this.registeredUsers.length, this.attendeesLimit)
+    if (this.registeredUsers.length >= this.attendeesLimit) throw new APIError(402, "event is full")
+    this.registeredUsers.push(userId)
+    await this.save()
 }
 
 module.exports = mongoose.model("event", Event)
