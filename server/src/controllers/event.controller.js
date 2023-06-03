@@ -1,9 +1,10 @@
 const stream = require("stream")
 const EventModel = require("../models/Event.model");
 const CatchAsync = require("../utility/CatchAsync");
-const APIError = require("../utility/ApiError")
+const APIError = require("../utility/ApiError");
+const UserModel = require("../models/User.model");
 const cloudinary = require("cloudinary").v2
-class BlogController {
+class EventController {
     static recordsPerPage = 5
     // create a event
     static createEvent = CatchAsync(async (req, res) => {
@@ -11,6 +12,12 @@ class BlogController {
         let { title, description, category, poster, duration, eventDate, tags } = req.body
         if (!req.file) throw new APIError(402, "poster image is required")
 
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        let manager = user._id
         let validBlog = BlogModel.validateEvent(title, description, category, poster, duration, eventDate)
 
         // upload image
@@ -36,7 +43,7 @@ class BlogController {
                 let myCloud = result
                 console.log(result.secure_url);
                 if (validBlog) {
-                    await BlogModel.createEvent(title, description, category, poster, duration, eventDate, tags)
+                    await BlogModel.createEvent(title, description, category, poster, duration, eventDate, tags, manager)
                 } else {
                     throw new APIError(402, "Validation error")
                 }
@@ -84,24 +91,39 @@ class BlogController {
     })
 
     static getSavedEvents = CatchAsync(async (req, res) => {
-        let docs = null
-
-        docs = await EventModel.find({})
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        
+        let savedEvents = user.savedEvents
+        let docs = []
+        savedEvents.forEach(async (eventId, index) => {
+            let event = await EventModel.findById(eventId)
+            docs.push(event)
+        })
         res.status(200).json({
             success: true,
             eventsLength: docs?.length,
             events: docs
         })
     })
-    // delete a blog post
-    static deleteBlog = CatchAsync(async (req, res) => {
-        let { blogId } = req.body
+    // delete a event
+    static deleteEvent = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+        let targetEvent = await BlogModel.getEvent(blogId)
 
-        let targetBlog = await BlogModel.getBlog(blogId)
-        if (targetBlog) {
-            await BlogModel.deleteBlog(blogId)
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        let manager = user._id
+        if (targetEvent) {
+            await EventModel.deleteEvent(eventId, manager)
         } else {
-            throw new APIError(404, "blog not found")
+            throw new APIError(404, "event not found")
         }
         res.status(200).json({
             success: true,
@@ -109,23 +131,17 @@ class BlogController {
         })
     })
     // update a blog post
-    static updateBlog = CatchAsync(async (req, res) => {
-        let { blogId } = req.body
-        let { title, body, url, category } = req.body
+    static updateEvent = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+        let { title, description, category } = req.body
 
-        let targetBlog = await BlogModel.getBlog(blogId)
+        let targetEvent = await EventModel.getEvent(eventId)
 
-        if (!targetBlog) {
-            throw new APIError(404, "blog not found")
+        if (!targetEvent) {
+            throw new APIError(404, "event not found")
         }
 
-        let validBlog = BlogModel.validateBlog(title, body, url, category)
-
-        if (!validBlog) {
-            throw new APIError(402, "Validation error")
-        }
-
-        let updated = await targetBlog.updateBlog(title, body, url, category)
+        let updated = await targetEvent.updateEvent(title, description, category)
         if (!updated) throw new APIError(402, "Validation error")
         res.status(200).json({
             success: true,
@@ -133,16 +149,34 @@ class BlogController {
         })
     })
     // get a single blog
-    static getSingleBlog = CatchAsync(async (req, res) => {
+    static getSingleEvent = CatchAsync(async (req, res) => {
         let id = req.params.id
 
-        let blog = await BlogModel.getBlog(id)
-        if (!blog) throw new APIError(404, "no blog found against this id")
+        let event = await EventModel.getEvent(id)
+        if (!event) throw new APIError(404, "event not found")
         res.status(200).json({
             success: true,
-            blog
+            event
+        })
+    })
+    // join an event
+    static joinEvent = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        let userId = user._id
+        let event = await EventModel.getEvent(eventId)
+        if (!event) throw new APIError(404, "event not found")
+        await event.joinEvent(userId)
+        res.status(200).json({
+            success: true,
+            message: "User joined the event"
         })
     })
 }
 
-module.exports = BlogController
+module.exports = EventController

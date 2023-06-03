@@ -27,6 +27,12 @@ const User = new mongoose.Schema({
         enum: ["admin", "user"],
         default: "user"
     },
+    savedEvents: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "event"
+        }
+    ]
 })
 
 User.pre("save", async function (next) {
@@ -83,6 +89,16 @@ User.statics.changeModeToSeller = async function (gmail){
     let user = await this.checkUserExists(gmail)
     if (!user) throw new APIError(404, "user not found with this gmail")
     user.userType = "seller"
+    await user.save()
+    return true
+}
+
+User.statics.saveEvent = async function (managerId, eventId){
+    if (!managerId) throw new APIError(401, "managerId field can not be empty")
+    if (!eventId) throw new APIError(401, "eventId field can not be empty")
+    let user = await this.findById(managerId)
+    if (!user) throw new APIError(404, "user not found with this id")
+    user.savedEvents.push(eventId)
     await user.save()
     return true
 }

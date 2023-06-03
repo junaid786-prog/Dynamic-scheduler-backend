@@ -4,6 +4,7 @@ const session = require('express-session');
 const cors = require("cors")
 // const publicRoutes = require("./routes/public.route")
 const authRoutes = require("./routes/auth.route");
+const eventRoutes = require("./routes/event.route");
 // const adminRoutes = require("./routes/admin.route");
 // const orderRoutes = require("./routes/order.route");
 // const productRoutes = require("./routes/product.route");
@@ -58,7 +59,7 @@ app.use(session({
 // app.use("/api", publicRoutes)
 app.use("/api", authRoutes)
 // app.use("/api/admin", adminRoutes)
-// app.use("/api", orderRoutes)
+app.use("/api", eventRoutes)
 // app.use("/api", productRoutes)
 
 app.use(ErrorMidelware)
