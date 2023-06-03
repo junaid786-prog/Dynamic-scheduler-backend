@@ -18,7 +18,7 @@ class EventController {
         let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
         if (!user) throw new APIError(404, "user not found")
         let manager = user._id
-        let validBlog = BlogModel.validateEvent(title, description, category, poster, duration, eventDate)
+        let validEvent = EventModel.validateEvent(title, description, category, poster, duration, eventDate)
 
         // upload image
         const readableStream = new stream.PassThrough();
@@ -42,8 +42,8 @@ class EventController {
                 }
                 let myCloud = result
                 console.log(result.secure_url);
-                if (validBlog) {
-                    await BlogModel.createEvent(title, description, category, poster, duration, eventDate, tags, manager)
+                if (validEvent) {
+                    await EventModel.createEvent(title, description, category, poster, duration, eventDate, tags, manager)
                 } else {
                     throw new APIError(402, "Validation error")
                 }
