@@ -3,13 +3,15 @@ const EventModel = require("../models/Event.model");
 const CatchAsync = require("../utility/CatchAsync");
 const APIError = require("../utility/ApiError");
 const UserModel = require("../models/User.model");
+const UserToStore = require("../utility/Profile");
 const cloudinary = require("cloudinary").v2
 class EventController {
     static recordsPerPage = 5
     // create a event
     static createEvent = CatchAsync(async (req, res) => {
         // title, description, category, poster, duration, eventDate, tags
-        let { title, description, category, poster, duration, eventDate, tags } = req.body
+        console.log(req.body)
+        let { title, description, category, duration, eventDate, tags } = req.body
         if (!req.file) throw new APIError(402, "poster image is required")
 
         if (!UserToStore.getUserFromSession(req)) {
@@ -18,17 +20,18 @@ class EventController {
         let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
         if (!user) throw new APIError(404, "user not found")
         let manager = user._id
-        let validEvent = EventModel.validateEvent(title, description, category, poster, duration, eventDate)
+        let validEvent = EventModel.validateEvent(title, description, category, "poster", duration, eventDate)
 
         // upload image
         const readableStream = new stream.PassThrough();
         readableStream.end(req.file.buffer);
 
         try {
+            console.log(process.env.CLOUD_NAME, process.env.CLOUD_API_KEY, process.env.CLOUD_API_SECRET)
             cloudinary.config({
-                cloud_name: process.env.CLOUD_NAME,
-                api_key: process.env.CLOUD_API_KEY,
-                api_secret: process.env.CLOUD_API_SECRET,
+                cloud_name: "dhakn858r",
+                api_key: "852837123684298",
+                api_secret: "zrpmN43rlZCZ6gdJ0ToKTxrUnSc"
             })
             const options = {
                 folder: "events_images",
@@ -43,7 +46,7 @@ class EventController {
                 let myCloud = result
                 console.log(result.secure_url);
                 if (validEvent) {
-                    await EventModel.createEvent(title, description, category, poster, duration, eventDate, tags, manager)
+                    await EventModel.createEvent(title, description, category, result.secure_url, duration, eventDate, tags, manager)
                 } else {
                     throw new APIError(402, "Validation error")
                 }
@@ -54,6 +57,7 @@ class EventController {
             });
             readableStream.pipe(uploadStream);
         } catch (err) {
+            console.log(err)
             throw new APIError(500, "Internal server error - cloudinary")
         }
     })
@@ -98,11 +102,13 @@ class EventController {
         if (!user) throw new APIError(404, "user not found")
         
         let savedEvents = user.savedEvents
+
         let docs = []
-        savedEvents.forEach(async (eventId, index) => {
-            let event = await EventModel.findById(eventId)
+
+        for (let i = 0; i < savedEvents.length; i++) {
+            let event = await EventModel.getEvent(savedEvents[i])
             docs.push(event)
-        })
+        }
         res.status(200).json({
             success: true,
             eventsLength: docs?.length,
@@ -112,7 +118,7 @@ class EventController {
     // delete a event
     static deleteEvent = CatchAsync(async (req, res) => {
         let { eventId } = req.body
-        let targetEvent = await BlogModel.getEvent(blogId)
+        let targetEvent = await EventModel.getEvent(eventId)
 
         if (!UserToStore.getUserFromSession(req)) {
             throw new APIError(401, "login first to access this")
@@ -163,20 +169,41 @@ class EventController {
     static joinEvent = CatchAsync(async (req, res) => {
         let { eventId } = req.body
 
-        if (!UserToStore.getUserFromSession(req)) {
-            throw new APIError(401, "login first to access this")
-        }
-        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
-        if (!user) throw new APIError(404, "user not found")
-        let userId = user._id
+        // if (!UserToStore.getUserFromSession(req)) {
+        //     throw new APIError(401, "login first to access this")
+        // }
+        // let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        //if (!user) throw new APIError(404, "user not found")
+        let userId = "647aeb4361ae82293336d7ad"
         let event = await EventModel.getEvent(eventId)
         if (!event) throw new APIError(404, "event not found")
         await event.joinEvent(userId)
+        // send confirmation mail
         res.status(200).json({
             success: true,
             message: "User joined the event"
         })
     })
+
+    static saveEvent = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+
+        // if (!UserToStore.getUserFromSession(req)) {
+        //     throw new APIError(401, "login first to access this")
+        // }
+        // let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        //if (!user) throw new APIError(404, "user not found")
+        let userId = "647aeb4361ae82293336d7ad"
+        let event = await EventModel.getEvent(eventId)
+        if (!event) throw new APIError(404, "event not found")
+        await UserModel.saveEvent(userId, eventId)
+        // send confirmation mail
+        res.status(200).json({
+            success: true,
+            message: "You have added the event to wishList"
+        })
+    })
+
 }
 
 module.exports = EventController

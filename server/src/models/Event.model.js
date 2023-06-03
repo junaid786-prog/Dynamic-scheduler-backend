@@ -115,4 +115,5 @@ Event.methods.joinEvent = async function (userId) {
         throw new APIError(402, "event can't be updated")
     }
 }
+
 module.exports = mongoose.model("event", Event)
