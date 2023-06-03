@@ -110,4 +110,17 @@ User.statics.saveEvent = async function (managerId, eventId){
     await user.save()
     return true
 }
+User.statics.removeFromSaved = async function (managerId, eventId){
+    if (!managerId) throw new APIError(401, "managerId field can not be empty")
+    if (!eventId) throw new APIError(401, "eventId field can not be empty")
+    let user = await this.findById(managerId)
+    if (!user) throw new APIError(404, "user not found with this id")
+    for (let i = 0; i < user.savedEvents.length; i++) {
+        if (user.savedEvents[i] == eventId) {
+            user.savedEvents.splice(i, 1)
+            await user.save()
+            return true
+        }
+    }
+}
 module.exports = mongoose.model("user", User)

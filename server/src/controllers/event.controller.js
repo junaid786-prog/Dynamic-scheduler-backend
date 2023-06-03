@@ -198,12 +198,12 @@ class EventController {
 
     static saveEvent = CatchAsync(async (req, res) => {
         let { eventId } = req.body
-        // if (!UserToStore.getUserFromSession(req)) {
-        //     throw new APIError(401, "login first to access this")
-        // }
-        // let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
-        //if (!user) throw new APIError(404, "user not found")
-        let userId = "647aeb4361ae82293336d7ad"
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        let userId = user._id || "647aeb4361ae82293336d7ad"
         let event = await EventModel.getEvent(eventId)
         if (!event) throw new APIError(404, "event not found")
         await UserModel.saveEvent(userId, eventId)
@@ -211,6 +211,24 @@ class EventController {
         res.status(200).json({
             success: true,
             message: "You have added the event to wishList"
+        })
+    })
+    static removeFromSavedEvents = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+        if (!UserToStore.getUserFromSession(req)) {
+            throw new APIError(401, "login first to access this")
+        }
+        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        if (!user) throw new APIError(404, "user not found")
+        //let userId = "647aeb4361ae82293336d7ad"
+        let userId = user._id || "647aeb4361ae82293336d7ad"
+        let event = await EventModel.getEvent(eventId)
+        if (!event) throw new APIError(404, "event not found")
+        await UserModel.removeFromSaved(userId, eventId)
+        // send confirmation mail
+        res.status(200).json({
+            success: true,
+            message: "You have removed the event from wishList"
         })
     })
 

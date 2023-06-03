@@ -12,6 +12,7 @@ Router.route("/event/update").post(EventController.updateEvent)
 Router.route("/event/delete").post(EventController.deleteEvent)
 Router.route("/event/join").post(EventController.joinEvent)
 Router.route("/event/save").post(EventController.saveEvent)
+Router.route("/event/remove").post(EventController.removeFromSavedEvents)
 Router.route("/events/saved").get(EventController.getSavedEvents)
 Router.route("/event/cancel").post(EventController.cancelSpecificEvent)
 
