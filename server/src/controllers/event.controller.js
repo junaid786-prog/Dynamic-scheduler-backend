@@ -8,6 +8,7 @@ const cloudinary = require("cloudinary").v2
 
 const JobScheduler = require("../jobs/scheduler");
 const { sendMail } = require("../utility/mailVerification");
+const APIFilters = require("../utility/ApiFilters");
 class EventController {
     static recordsPerPage = 5
     // create a event
@@ -72,31 +73,20 @@ class EventController {
             throw new APIError(500, "Internal server error - cloudinary")
         }
     })
-    // get all blogs
+    // get all events
     static getAllEvents = CatchAsync(async (req, res) => {
         let category = req.query.category || ""
         let title = req.query.title || ""
         let pageNo = req.query.page || 1
+        let popularity = req.query.popularity || 0
 
-        let query
-        if (category && title) {
-            query = {
-                "title": title,
-                "category": category
-            }
-        } else if (!category && title) {
-            query = {
-                "title": title
-            }
-        } else if (category && !title) {
-            query = {
-                "category": category
-            }
-        }
 
-        let events = await EventModel.find(query).sort({ _id: -1 }).skip((pageNo - 1) * this.recordsPerPage)
-            .limit(this.recordsPerPage)
-
+        const apiFilters = new APIFilters(EventModel.find(), req.query)
+            .search()
+            .filter()
+            .pagenation(this.recordsPerPage);
+        const events = await apiFilters.query;
+        
         res.status(200).json({
             success: true,
             page: pageNo,
@@ -111,7 +101,7 @@ class EventController {
         }
         let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
         if (!user) throw new APIError(404, "user not found")
-        
+
         let savedEvents = user.savedEvents
 
         let docs = []
@@ -254,7 +244,7 @@ class EventController {
         let userFromSession = UserToStore.getUserFromSession(req)
 
         if (!userFromSession) throw new APIError(401, "login first to access this")
-        let {email} = userFromSession
+        let { email } = userFromSession
         let user = await UserModel.checkUserExists(email)
         if (!user) throw new APIError(404, "user not found")
         let event = await EventModel.getEvent(eventId)
