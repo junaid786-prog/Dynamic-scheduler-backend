@@ -1,0 +1,30 @@
+.home_banner{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 70vh;
+}
+.home_banner section{
+    width: 100%;
+}
+.home_banner a{
+    text-decoration: none;
+}
+.home_banner p{
+    width: 50%;
+    text-align: center;
+}
+
+.main_events{
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.main_events h3{
+    margin: 20px 0px;
+}
