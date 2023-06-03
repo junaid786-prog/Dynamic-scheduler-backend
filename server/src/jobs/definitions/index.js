@@ -1,4 +1,4 @@
-const { mailDefinitions } =  require("./mails");
+const { mailDefinitions } =  require("./mail");
 const definitions = [mailDefinitions];
 
  const allDefinitions = (agenda) => {

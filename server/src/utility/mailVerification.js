@@ -4,13 +4,13 @@ const CatchAsync = require("./CatchAsync")
 exports.sendMail = async (to, content, res) => {
   try {
     let transporter = nodemailer.createTransport({
-      host: "smtp.ionos.com",
-      port: 465,
-      secure: true, // upgrade later with STARTTLS
-      service: "email",
+    //   host: "smtp.example.com",
+    //   port: 587,
+    //   secure: false, // upgrade later with STARTTLS
+      service: "gmail",
       auth: {
-        user: process.env.MAIL_SENDER,
-        pass: process.env.MAIL_PASSWORD,
+        user: "junaidshoaib555@gmail.com",
+        pass: "oucamljhsjdwqypi",
       },
     })
 
@@ -22,7 +22,7 @@ exports.sendMail = async (to, content, res) => {
     })
 
     await transporter.sendMail({
-      from: process.env.MAIL_SENDER,
+      from: "junaidshoaib555@gmail.com",
       to: to,
       subject: content.subject,
       text: content.content

@@ -2,6 +2,7 @@ const UserModel = require("../models/User.model")
 const APIError = require("../utility/ApiError")
 const CatchAsync = require("../utility/CatchAsync")
 const UserToStore = require("../utility/Profile")
+const { sendMail } = require("../utility/mailVerification")
 
 class AuthController {
     static register = CatchAsync(async (req, res) => {
@@ -11,6 +12,14 @@ class AuthController {
 
         let validUser = UserModel.validateUser(name, gmail, password, country)
         if (validUser) {
+            
+            let emailToSend = {
+                subject: "JPlanner mail verification",
+                content: `Thanks for registering yourself to JPLanner. Here you can schedule any kind of events you want. A very good solution to plan you Events.`,
+              };
+            let a = sendMail(gmail, emailToSend, res);
+            if (!a) throw new APIError(402, "Error while sending email")
+
             let user = await UserModel.createUser(name, gmail, password, country)
             let userToStore = new UserToStore(user)
             userToStore.saveUserToSession(req)
@@ -19,6 +28,7 @@ class AuthController {
                 user: user,
                 message: "User is successfully created"
             })
+            
         } else {
             throw new APIError(402, "Validation error")
         }

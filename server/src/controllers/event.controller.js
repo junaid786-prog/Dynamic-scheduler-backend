@@ -16,11 +16,14 @@ class EventController {
         let { title, description, category, duration, eventDate, tags } = req.body
         if (!req.file) throw new APIError(402, "poster image is required")
 
-        if (!UserToStore.getUserFromSession(req)) {
-            throw new APIError(401, "login first to access this")
+        // if (!UserToStore.getUserFromSession(req)) {
+        //     throw new APIError(401, "login first to access this")
+        // }
+        // let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
+        // if (!user) throw new APIError(404, "user not found")
+        let user = {
+            _id: "647aeb4361ae82293336d7ad"
         }
-        let user = await UserModel.checkUserExists(UserToStore?.getUserFromSession(req)?.email)
-        if (!user) throw new APIError(404, "user not found")
         let manager = user._id
         let validEvent = EventModel.validateEvent(title, description, category, "poster", duration, eventDate)
 
@@ -45,14 +48,18 @@ class EventController {
                 if (error) {
                     return res.status(500).send('Failed to upload file to Cloudinary');
                 }
-                let myCloud = result
+                let myEvent = null
                 console.log(result.secure_url);
                 if (validEvent) {
-                    await EventModel.createEvent(title, description, category, result.secure_url, duration, eventDate, tags, manager)
+                    myEvent = await EventModel.createEvent(title, description, category, result.secure_url, duration, eventDate, tags, manager)
                 } else {
                     throw new APIError(402, "Validation error")
                 }
-                JobScheduler.sendReminderToAttendees(eventDate, title, description, category, result.secure_url, duration, eventDate, tags, manager)
+                let data = {
+                    eventDate: eventDate,
+                    eventId: myEvent?._id
+                }
+                await JobScheduler.sendReminderToAttendees(data)
                 res.status(200).json({
                     success: true,
                     message: "Event is successfully created"
