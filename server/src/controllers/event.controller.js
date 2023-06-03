@@ -5,6 +5,8 @@ const APIError = require("../utility/ApiError");
 const UserModel = require("../models/User.model");
 const UserToStore = require("../utility/Profile");
 const cloudinary = require("cloudinary").v2
+
+const JobScheduler = require("../jobs/scheduler")
 class EventController {
     static recordsPerPage = 5
     // create a event
@@ -50,6 +52,7 @@ class EventController {
                 } else {
                     throw new APIError(402, "Validation error")
                 }
+                JobScheduler.sendReminderToAttendees(eventDate, title, description, category, result.secure_url, duration, eventDate, tags, manager)
                 res.status(200).json({
                     success: true,
                     message: "Event is successfully created"
