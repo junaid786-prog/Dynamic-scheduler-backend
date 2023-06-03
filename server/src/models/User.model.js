@@ -32,7 +32,12 @@ const User = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "event"
         }
-    ]
+    ],
+    status: {
+        type: String,
+        enum: ["confirmed", "pending"],
+        default: "confirmed"
+    }
 })
 
 User.pre("save", async function (next) {

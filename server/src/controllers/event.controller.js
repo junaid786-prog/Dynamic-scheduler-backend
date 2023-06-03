@@ -6,7 +6,8 @@ const UserModel = require("../models/User.model");
 const UserToStore = require("../utility/Profile");
 const cloudinary = require("cloudinary").v2
 
-const JobScheduler = require("../jobs/scheduler")
+const JobScheduler = require("../jobs/scheduler");
+const { sendMail } = require("../utility/mailVerification");
 class EventController {
     static recordsPerPage = 5
     // create a event
@@ -230,6 +231,39 @@ class EventController {
         })
     })
 
+    static cancelSpecificEvent = CatchAsync(async (req, res) => {
+        let { eventId } = req.body
+        let userFromSession = UserToStore.getUserFromSession(req)
+
+        if (!userFromSession) throw new APIError(401, "login first to access this")
+        let {email} = userFromSession
+        let user = await UserModel.checkUserExists(email)
+        if (!user) throw new APIError(404, "user not found")
+        let event = await EventModel.getEvent(eventId)
+        if (!event) throw new APIError(404, "event not found")
+
+        console.log(user, event.managerId)
+        if (event.managerId.toString() !== user?._id?.toString()) throw new APIError(401, "you are not authorized to cancel this event")
+
+        let attendees = event.registeredUsers
+        await EventModel.deleteOne({ _id: eventId })
+
+        for (let i = 0; i < attendees.length; i++) {
+            let attendee = attendees[i]
+            let user = await UserModel.findById(attendee)
+            if (!user) throw new APIError(404, "attendee not found")
+            let { gmail, name } = user
+            let content = {
+                subject: "Event Cancellation",
+                content: `Hello ${name}, this is to inform you that the event ${event.title} on ${event.eventDate} about ${event.description} is cancelled.`
+            }
+            await sendMail(gmail, content);
+        }
+        res.status(200).json({
+            success: true,
+            message: "Event is successfully cancelled"
+        })
+    })
 }
 
 module.exports = EventController

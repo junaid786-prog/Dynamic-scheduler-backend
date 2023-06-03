@@ -27,6 +27,7 @@ exports.sendMail = async (to, content, res) => {
       subject: content.subject,
       text: content.content
     })
+    console.log("email sent")
     return true
   } catch (err) {
     return false
